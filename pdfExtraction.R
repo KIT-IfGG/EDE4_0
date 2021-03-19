@@ -99,6 +99,8 @@ for ( i in 1:length(index[,1])){
   }
 }
 
-
+write.table(steckbrief, "E:/EDE_Daten/FVA_steckbrief_table.txt",sep = "\t",
+            col.names = T, row.names = F)
+saveRDS(steckbrief, file = "E:/EDE_Daten/FVA_steckbrief.rds")
 
 
