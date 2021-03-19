@@ -30,4 +30,6 @@ BaumartKlimaSpace <-lapply(matches, function(x){
 })
 
 
+names(BaumartKlimaSpace) <- gsub("_bioclim.txt" , "", names(BaumartKlimaSpace))
+
 saveRDS(BaumartKlimaSpace, file = "E:/EDE_Daten/BaumartKlimaSpace.rds")
