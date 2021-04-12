@@ -1,5 +1,72 @@
 # scatter plot with density http://www.logarithmic.net/pfh-files/blog/01509162940/scatter.html
 
+plotClimateSpaceHull.trend <- function(x, y, z, overlay = T, years =c(10, 30, 50, 100),
+                                    alpha = 0.5, pch = 20,cex =0.4, startYear = NULL,
+                                    xaxis = NULL, yaxis=NULL, ...){
+  
+  require(RColorBrewer)
+ 
+  # calculate range for plot
+  if(is.null(yaxis)) yaxis <- range(y, na.rm = T)
+  if(is.null(xaxis)) xaxis <- range(x, na.rm = T)
+  
+  atx <- seq(0, ceiling(max(xaxis)/1000)*1000,by=500)
+  aty <- seq(ceiling(min(yaxis)/10)*1000, ceiling(max(yaxis)/10)*1000,by=500)
+  xlabels <- seq(0, ceiling(max(xaxis)/1000)*1000,by=500)
+  ylabels <- seq(ceiling(min(yaxis)/10)*10, ceiling(max(yaxis)/10)*10,by=5)
+  
+  
+  df <- data.frame(x=x,y=y, z=z)
+  df <- na.omit(df)
+  
+  # Assign colors based on years breaks
+  my.cols <- rev(brewer.pal(length(years), "RdYlBu"))
+  
+  if(is.null(startYear)) startYear <- df$z[1]
+  yearBreaks <- years + startYear
+  
+  df$group <- rep(1, length(df$z))
+  
+  for (j in 1:length(df$group)){
+    for (i in 2:length(yearBreaks)){
+      if (df$z[j] > yearBreaks[i-1] & df$z[j] <= yearBreaks[i] ){
+        cat("\n\n New group "); cat(i)
+        df$group[j] <- i
+      }
+    }
+  }
+  
+  
+  df$color <- sapply(df$group, function(x) my.cols[x])
+  
+  groups <- as.numeric(unique(df$group))
+  
+  
+  empty.raster  <- raster(nrows=max(yaxis)*100-min(yaxis)*100, ncols=max(xaxis)-min(xaxis), 
+                          xmn=min(xaxis), xmx=max(xaxis), ymn=min(yaxis)*100, ymx=max(yaxis)*100,
+                          resolution = 25)
+  
+  new.raster <- rasterize(x=cbind(df$x, df$y*100), y= empty.raster, field =as.numeric(df[,4]), fun= min)
+  
+  
+  plot(new.raster, col = my.cols, axes = FALSE, legend = FALSE, ...)
+  
+  
+  legend("topright", #title= paste("Fraction of" , length(df[,1]), "points", sep = " "),
+        legend = paste("in", years), pch = 15, col = my.cols, cex = 0.75, bty = "n")
+  
+  axis(1, at=atx, labels=xlabels, las=0)
+  
+  axis(2, at=aty, labels=ylabels,  las=0)
+  
+  
+  
+  
+  
+}
+
+
+
 
 plotClimateSpace <- function(x, y,k=min(25,length(x)),n=4, alpha = 0.5, pch = 20,
                              cex =0.4, ...){
@@ -26,7 +93,7 @@ plotClimateSpace <- function(x, y,k=min(25,length(x)),n=4, alpha = 0.5, pch = 20
   
   # Assign colors
   my.cols <- rev(brewer.pal(n, "RdYlBu"))
-  df$color <- sapply(df$group, function(x){ my.cols[x]})
+  df$color <- sapply(df$group, function(x) my.cols[x])
   
   # plot 
   plot(df$x, df$y, pch=pch , cex=cex, col = alpha(df$color, alpha), ...)
@@ -71,7 +138,7 @@ plotClimateSpace.Bestand <- function(x, y, x_bestand, y_bestand,k=min(25,length(
   
   # Assign colors
   my.cols <- rev(brewer.pal(n, "RdYlBu"))
-  df$color <- sapply(df$group, function(x){ my.cols[x]})
+  df$color <- sapply(df$group, function(x) my.cols[x])
   
   # plot 
   plot(df$x, df$y, pch=pch , cex=cex, col = alpha(df$color, alpha),
@@ -122,6 +189,8 @@ plotClimateSpace.Bestand <- function(x, y, x_bestand, y_bestand,k=min(25,length(
 
 
 
+
+
 plotClimateSpaceHull <- function(x, y,k=min(25,length(x)),n=4, alpha = 0.5, pch = 20,
                              cex =0.4, xaxis = NULL, yaxis=NULL, lwd = 2,...){
   
@@ -157,7 +226,7 @@ plotClimateSpaceHull <- function(x, y,k=min(25,length(x)),n=4, alpha = 0.5, pch 
   
   # Assign colors
   my.cols <- rev(brewer.pal(n, "RdYlBu"))
-  df$color <- sapply(df$group, function(x){ my.cols[x]})
+  df$color <- sapply(df$group, function(x) my.cols[x])
   
   groups <- as.numeric(unique(df$group))
   
@@ -218,7 +287,7 @@ plotClimateSpaceHull.Bestand <- function(x, y, x_bestand, y_bestand,k=min(25,len
   
   # Assign colors
   my.cols <- rev(brewer.pal(n, "Blues"))
-  df$color <- sapply(df$group, function(x){ my.cols[x]})
+  df$color <- sapply(df$group, function(x) my.cols[x])
   
   groups <- as.numeric(unique(df$group))
   
