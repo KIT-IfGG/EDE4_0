@@ -157,17 +157,17 @@ calculateBioVarHist.simple <- function(df_clima){
 
 calculateBioVarHist.pro <- function(BestandObject){
   dummy <- BestandObject[["Klima_Pro"]]
-  dummyholder <- dummy
+  dummyholder <- BestandObject[["Klima_Pro"]]
   
   forcingCondition <- names(dummy)
   for (i in  1:length(forcingCondition)){
     rcp <- names(dummy[[i]])
-    rcp <- rcp[rcp %in% c("rcp2p6", "rcp4p5", "rcp6p0", "rcp8p5")]
     for (j in 1:length(rcp)){
       dummyholder[[i]][[j]] <-calculateBioVarHist.simple( dummy[[i]][[j]])
       
     }
   }
+  
   BestandObject[["Bioclim_full_pro"]] <- dummyholder
   return(BestandObject)
 
@@ -179,6 +179,7 @@ Bestand_B <- readRDS("E:/EDE_Daten/Bestand_B.rds")
 Bestand_C <- readRDS("E:/EDE_Daten/Bestand_C.rds")
 
 Bestand_A <- calculateBioVarHist.pro(Bestand_A)
+
 Bestand_B <- calculateBioVarHist.pro(Bestand_B)
 Bestand_C <- calculateBioVarHist.pro(Bestand_C)
 
@@ -187,4 +188,6 @@ Bestand_C <- calculateBioVarHist.pro(Bestand_C)
 saveRDS(Bestand_A, file = "E:/EDE_Daten/Bestand_A.rds")
 saveRDS(Bestand_B, file = "E:/EDE_Daten/Bestand_B.rds")
 saveRDS(Bestand_C, file = "E:/EDE_Daten/Bestand_C.rds")
+
+
 
