@@ -113,8 +113,8 @@ climateSpaceComparison <- function(df, df_bestand, tolerance = c(1, 0.5), verbos
  
   
   
-  overall <- matrix(c("gesamtRisikowert", round(overallRisk,digits = 1), names(riskvalues)[ceiling(overallRisk)],
-                      "Durschnitt T-P ist im",meanTempPrec[3], names(riskvalues)[ceiling(meanTempPrec[3])] ),
+  overall <- matrix(c("gesamtRisikowert", round(overallRisk,digits = 1), names(riskValues)[ceiling(overallRisk)],
+                      "Durschnitt T-P ist im",meanTempPrec[3], names(riskValues)[ceiling(meanTempPrec[3])] ),
                     ncol = 3, byrow = T)
   colnames(overall) <-  c("variabel", "wert", "stufe")
   
