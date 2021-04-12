@@ -1,0 +1,335 @@
+---
+title: "EDE_Overview"
+author: "Ramiro Silverya Gonzalez"
+date: "`r Sys.Date()`"
+abstract: "Übersicht der einsetzbaren Anwendungsfälle für EDE 4.0. \n \n \n"
+
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8](inputenc)
+
+---
+
+
+
+```{r setup, echo=F, warning = F, message=F, results = 'hide'}
+set.seed(1)
+knitr::opts_chunk$set(fig.width=10, fig.height=10, warning=FALSE, cache = FALSE, error = TRUE)
+
+library(pander)
+panderOptions('table.alignment.default', function(df)
+    ifelse(sapply(df, is.numeric), 'right', 'left'))
+panderOptions('table.split.table', Inf)
+#panderOptions('big.mark', ",")
+panderOptions('keep.trailing.zeros', TRUE)
+#set.alignment('left', row.names = 'right')
+
+tableCaption <- local({
+  tableid <- 0
+  function(x=NULL){
+    if(is.null(x)){
+      return(tableid)
+    }else{
+      tableid <<- tableid + 1
+      paste("Table ", tableid, ": ", x , sep = "")  
+    }
+  }
+})
+
+figCaption <- local({
+  figureid <- 0
+  function(x) {
+    figureid <<- figureid + 1
+    paste('Figure ', figureid, ': ', x, sep = '')
+  }
+})
+
+subsectionNumbering <- local({
+  sectionid <- 0
+  function(x, y) {
+    sectionid <<- sectionid + 1
+    paste('## ', y, ".", sectionid, '. ', x, "\n\n", sep = '')
+  }
+})
+
+library(knitr)
+library(plyr)
+
+set.seed(1)
+
+
+``` 
+
+# Übersicht
+
+EDE 4.0 ist ...
+
+
+
+# Meine Bestände
+
+Hier karte mit den Beständen
+
+
+  
+
+# Bestand C
+```{r, echo = F, echo=F, message= F, warning=F, include=TRUE}
+source("E:/GitHub/EDE40/processData/plotSppClimate.R")
+source("E:/GitHub/EDE40/processData/calculateStandVariables.R")
+source("E:/GitHub/EDE40/processData/climateSpaceAnalysis.R")
+
+BaumartKlimaSpace <- readRDS(file = "E:/EDE_Daten/BaumartKlimaSpace.rds")
+
+Bestand <- readRDS("E:/EDE_Daten/Bestand_C.rds")
+
+
+
+```
+
+
+## Bestand Beschreibung
+
+Allgemeine Information
+
+```{r, echo = F, message= F, warning=F, include=TRUE}
+beschreibung <- Bestand$Beschreibung
+rownames(beschreibung) <- NULL
+
+pander(beschreibung, adding = 0, missing = '**--**', round = 3,
+       use.hyphening = TRUE, split.cells = 3, caption = tableCaption("Beschreibung des Bestands "))
+
+getwd()
+```
+
+
+```{r, echo = F,  message= F, warning=F, include=TRUE}
+boden <- Bestand$Boden
+rownames(boden) <- NULL
+
+
+```
+Der Boden der Bestand ist `r unique(boden$type_fao)` (FAO). Weiter Information zu Boden in der Tabelle
+
+```{r, echo = F, message= F, warning=F, include=TRUE}
+
+pander(boden, adding = 0, missing = '**--**', round = 3,
+       use.hyphening = TRUE, split.cells = 3, caption = tableCaption("Boden des Bestands "))
+
+
+```
+
+### Holz
+- Umtriebszeit
+
+Derzeit ist
+
+```{r, echo = F,  message= F, warning=F, include=TRUE}
+tree <- Bestand$Baum
+stand <- Bestand$Bestand
+years <- unique(tree$year)
+
+stand$volum <- calcVol(stand$dbhBA_cm, stand$heightBA_m, stand$ba_m2ha)
+stand$growth <- calcGrowth.abs(stand$volum)
+stand$growthRel <- calcGrowth.rel(stand$volum)
+
+stand$dbh100  <-sapply(years, function(x) calcDBH.meanArit100(tree[tree$year==x,"dbh1_cm"]))
+
+entwicklungStufen <-c("Jungwuchs, Dickung", "schwaches Stangenholz", "starkes Stangenholz",
+                      "schwaches Baumholz", "mittleres Baumholz", "starkes Baumholz")
+  
+entwicklungDBH_min <- seq(0,50,by=10)
+entwicklungDBH_max <- c(seq(10,50, by = 10), 200)
+
+entwicklungStufen <- data.frame(entwicklungStufen, entwicklungDBH_min, entwicklungDBH_max)
+
+stand$entwicklungstufen <- sapply(stand[,"dbh100"],function(x){
+  if (is.na(x)) x <- 0
+  reference <- ceiling(x/10)*10
+  if (reference > 50) reference <- 50
+  return(entwicklungStufen[entwicklungStufen$entwicklungDBH_min==reference, "entwicklungStufen" ])
+})
+
+
+```
+
+
+```{r, echo = F, message= F, warning=F, include=TRUE}
+
+pander(stand[, c("year", "dbh100", "entwicklungstufen", "density_treeha", "ba_m2ha", "volum", "growthRel" )], adding = 0, missing = '**--**', round = 3,
+       use.hyphening = TRUE, split.cells = 3, caption = tableCaption("Zuwachs und Holz "))
+
+head(stand)
+```
+
+
+
+## Aktueller Zustand 
+```{r, echo = F,  message= F, warning=F, include=TRUE}
+
+
+```
+
+### Zuwachs
+
+```{r, echo = F, echo=F, message= F, warning=F, include=TRUE}
+
+
+```
+
+```{r, echo = F, echo=F, message= F, warning=F, fig.cap=figCaption("Abbildung von Zuwachs") , include=TRUE}
+## Plot first set of data and draw its axis
+plot(stand$year, stand$volum, pch=16, axes=FALSE, xlab="", ylab="", 
+     type="b",col="black", main="Volum Growth")
+lines(stand$year[c(1,length(stand$year))], stand$volum[c(1,length(stand$year))],
+      col = "blue")
+legend("topleft", legend = c("Laufender Volumenzuwachs", "Durchschnittlicher jährliche Volumenzuwachs", "Zuwachsrate"),
+       col = c("black", "blue", "red"), lty = 1)
+axis(2, ylim=range(stand$volum, na.rm = T), col="black",las=1)  ## las=1 makes horizontal labels
+mtext("Volum",side=2,line=2.5)
+box()
+
+## Allow a second plot on the same graph
+par(new=TRUE)
+
+## Plot the second plot and put axis scale on right
+plot(stand$year, stand$growthRel, pch=15, axes=FALSE, xlab="", ylab="", 
+     type="b",col="red", ylim = c(min(stand$growth, na.rm = T),100)) 
+abline(h= 0,  col="green", lwd = 2)
+## a little farther out (line=4) to make room for labels
+mtext("Zuwachs",side=4,col="red",line=4) 
+axis(4, ylim=c(0,100), col="red",col.axis="red",las=1)
+## Draw the time axis
+axis(1,pretty(range(stand$year),4))
+mtext("Years",side=1,col="black",line=2.5)
+
+```
+
+
+### Eginung
+
+- spp
+- bestand Variablen
+- Holz (Schätzung) Holzsorte / Holzpreise
+- Derzeit Eignung> Klimahülle
+
+## Ziele
+
+- Nachhaltigkeit Holzernte - Zuwachs gleich vorherrige JAhrs oder laufende - Hieb
+- Ziele
+Vorratsfestmeter (vfm)
+Erntefestmeter (efm)
+Schichtfestmeter (sfm)
+
+
+
+
+
+## Baumartenwahl
+
+- Mittelfristig
+
+- Langfristig
+
+- Steckbrief
+
+
+## Risiko
+
+
+### Eignung aktueller Baumarten
+
+#### Heutige Klima
+
+```{r, echo = F, echo=F, message= F, warning=F, include=TRUE}
+dummy <- BaumartKlimaSpace[["Picea_abies"]]
+dummyBestand <- Bestand$Bioclim_full
+
+temperature <- paste("bio",c(1, 5, 6, 1, 1,  8,9, 10, 11), sep = "")
+temperatureLegend <- c("Annual Mean Temperature", "Max Temperature of Warmest Month",
+                       "Min Temperature of Coldest Month", "Annual Mean Temperature",
+                       "Annual Mean Temperature", "Mean Temperature of Wettest Quarter",
+                       "Mean Temperature of Driest Quarter", "Mean Temperature of Warmest Quarter",
+                       " Mean Temperature of Coldest Quarter")
+
+precipation <- paste("bio", c(12, 12, 12,  13, 14, 16, 17, 18, 19), sep = "")
+precipationLegend <- c("Annual Precipitation", "Annual Precipitation", "Annual Precipitation",
+                       "Precipitation of Wettest Month",
+                       " Precipitation of Driest Month", "Precipitation of Wettest Quarter",
+                       "Precipitation of Driest Quarter", "Precipitation of Warmest Quarter",
+                       "Precipitation of Coldest Quarter")
+
+xaxis <- range(sapply(precipation, function(x)range(dummy[, x], na.rm = T)),
+               sapply(precipation, function(x)range(dummyBestand[, x], na.rm = T)))
+yaxis <- range(sapply(temperature, function(x)range(dummy[, x], na.rm = T)),
+               sapply(temperature, function(x)range(dummyBestand[, x], na.rm = T)))
+
+
+
+riskAnalysis <- vector(mode = "list", length = length(temperature))
+
+```
+
+
+```{r, echo = F, echo=F, message= F, warning=F, include=TRUE}
+
+for (i in 1:length(temperature)){
+  plotClimateSpaceHull.Bestand(x = dummy[, precipation[i]], y = dummy[, temperature[i]], 
+                               x_bestand = dummyBestand[,precipation[i]],
+                               y_bestand = dummyBestand[, temperature[i]],
+                               ylab=temperatureLegend[i],
+                               xlab=precipationLegend[i], 
+                               main = "Eignung Lärche - Bestand A",
+                               alpha = 1, xaxis = xaxis, yaxis = yaxis,
+                               pch = 15, cex = 0.5,  tolerance = c(0.5,0.5), lwd= 1,)
+  hi <- climateSpaceComparison.full(x = dummy[, precipation[i]], y = dummy[, temperature[i]], 
+                                    x_bestand = dummyBestand[,precipation[i]],
+                                    y_bestand = dummyBestand[, temperature[i]],
+                                    tolerance = c(0.5,0.5), verbose = F)
+  riskAnalysis[[i]] <- hi$report$overall$wert
+}
+
+
+```
+
+```{r, echo = F, echo=F, message= F, warning=F, include=TRUE}
+summaryRisk <- do.call("rbind", riskAnalysis)
+mean(as.numeric(summaryRisk[,1]))
+
+
+```
+
+### Wind 
+
+Ein wichtige Aspekt ist Schlankheitgrad. Werte unter 0.8 sind riskant
+
+```{r, echo = F, echo=F, message= F, warning=F, include=TRUE}
+HdbhLegend <- c("sehr gering", "gering", "erhöht", "hoch", "sehr hoch")
+Hdbhvalues <- c(0.60, 0.80, 1.00, 1.20, 1.40)
+```
+
+
+```{r, echo = F, echo=F, message= F, warning=F, include=TRUE}
+stand$schlankheitgrad <- calcHD(stand$dbhBA_cm, stand$heightBA_m)
+#plot(stand$dbhArith_cm, stand$heightArith_m, type="b")
+par(new=TRUE)
+plot(stand$year, stand$schlankheitgrad,  ylim = c(0.5, 1.5))
+lines(stand$year, stand$schlankheitgrad)
+abline(h= Hdbhvalues[1],  col="green", lwd = 2)
+for (i in 1:length(Hdbhvalues)){
+  abline(h= Hdbhvalues[i],  col="green", lwd = 2)
+  text(y = Hdbhvalues[i], legend = HdbhLegend[i])
+  
+}
+
+```
+
+
+
+
+
+
