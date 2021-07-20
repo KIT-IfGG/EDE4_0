@@ -37,7 +37,10 @@ for (i in 1:length(species)){
 
 cleanTable <- do.call(cbind, dataHolder)
 
-View(cleanTable)                             
+View(cleanTable) 
+
+cleanTable <- cbind(paramaterSchweiz$Parameter, cleanTable)
+
 
 write.table(cleanTable, file = file.path(syncSharePath, "parameterSchweiz.txt"),
           sep = "\t", row.names = FALSE)
