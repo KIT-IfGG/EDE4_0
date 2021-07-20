@@ -19,16 +19,14 @@ setDB(dbFilepath)
 # Compare the Parameters
 ################################################################################
 # Read the parameters from Foresters 2021 Switzerland
-paramaterSchweiz <- read.csv(file.path(syncSharePath, "Schweiz_3PG.tsv"), sep = "\t")
+paramaterSchweiz <- read.csv(file.path(syncSharePath, "parameterSchweiz.txt"), sep = "\t")
 head(paramaterSchweiz)
+names(paramaterSchweiz)[1] <- "parameter"
 # Tidy up the parameters
-piceAbies <- paramaterSchweiz[, c("Parameter", "Picea.abies")]
+piceAbies <- paramaterSchweiz[, c("parameter", "Picea.abies", "Picea.abies_min", "Picea.abies_max")]
 head(piceAbies)
-names(piceAbies)<- c("parameter", "piab")
-meanVal <- piceAbies$piab
-meanVal <- gsub( "- ", "-", meanVal)
-meanVal <- as.numeric(gsub("\\(.*","",meanVal))
-piceAbies$piab <- meanVal
+
+
 # It seems some parameters have names not supported by the package
 '%!in%' <- function(x,y)!('%in%'(x,y))
 piceAbies[piceAbies$parameter %!in% i_parameters$parameter, ]
@@ -78,17 +76,73 @@ out_3PG.solling <- run_3PG(
 # Settings like in Foresters 2021, but correct_bias can be set to 1?!!
 # settings = list(light_model = 2, transp_model = 2,
 # phys_model = 2, height_model = 2, correct_bias = 1, calculate_d13c=0)
+
+minVal <- piceAbies$Picea.abies_min
+names(minVal) <- piceAbies$parameter
+minVal <- minVal[!is.na(minVal)]
+
+maxVal <- piceAbies$Picea.abies_max
+names(maxVal) <- piceAbies$parameter
+maxVal <- maxVal[!is.na(maxVal)]
+
+
+outMin <- vector(mode = "list", length = length(minVal))
+outMax <- vector(mode = "list", length = length(maxVal))
+
+
+basePar <- piceAbies[, c("parameter", "Picea.abies")]
+names(basePar)[2] <- "piab"
+
+
+myParameter <- basePar
+
+# Baseline
 out_3PG.swiss <- run_3PG(
   site        = site_solling, 
   species     = species_solling, 
   climate     = climate_solling, 
   thinning    = thinn_solling,
-  parameters  = piceAbies, 
+  parameters  = myParameter, 
   #size_dist   = meineVerteilung,
   settings    = list(light_model = 1, transp_model =1 , phys_model = 1,
                    height_model = 2, correct_bias = 0, calculate_d13c = 0),
   check_input = TRUE, df_out = TRUE)
+
+# Min modifications
+for (i in 1:length(outMin)){
+  myParameter <- basePar
+  myParameter[myParameter$parameter==names(minVal)[i], ]$piab <- minVal[1]
+  outMin[[i]] <-  run_3PG(
+    site        = site_solling, 
+    species     = species_solling, 
+    climate     = climate_solling, 
+    thinning    = thinn_solling,
+    parameters  = myParameter, 
+    #size_dist   = meineVerteilung,
+    settings    = list(light_model = 1, transp_model =1 , phys_model = 1,
+                       height_model = 2, correct_bias = 0, calculate_d13c = 0),
+    check_input = TRUE, df_out = TRUE)
+}
+# Max Modfifications
+for (i in 1:length(outMax)){
+  myParameter <- basePar
+  myParameter[myParameter$parameter==names(minVal)[i], ]$piab <- maxVal[1]
+  outMax[[i]] <-  run_3PG(
+    site        = site_solling, 
+    species     = species_solling, 
+    climate     = climate_solling, 
+    thinning    = thinn_solling,
+    parameters  = myParameter, 
+    #size_dist   = meineVerteilung,
+    settings    = list(light_model = 1, transp_model =1 , phys_model = 1,
+                       height_model = 2, correct_bias = 0, calculate_d13c = 0),
+    check_input = TRUE, df_out = TRUE)
+}
+
+
+
 # save output in the list
+
 outComparsion <- list(solling = out_3PG.solling, swiss = out_3PG.swiss)
 
 # Plot results
@@ -107,11 +161,21 @@ for (j in 1:length(i_var)){
       }else{
         lines(dummy$date, dummy$value, col = colors[i] )
       }
+      for (k in 1:length(outMin)){
+        minDummy <- outMin[[k]][outMin[[k]]$variable ==i_var[j], ]
+        maxDummy <- outMax[[k]][outMax[[k]]$variable ==i_var[j], ]
+        lines(minDummy$date, minDummy$value,  col = "red", lty = 3)
+        lines(maxDummy$date, maxDummy$value,  col = "red", lty = 3)
+        
+      }
+      
       legend("bottomleft", legend = names(outComparsion), col = colors, lty=1 )
     }
   }
 }
 par(mfrow=c(1,1))
+
+
 
 ################################################################################
 # See how climate influences
